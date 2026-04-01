@@ -1,0 +1,48 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BDC2185B-D14F-4AB1-9060-68C55137994D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3DPrinterSimulator.API", "src\3DPrinterSimulator.API\3DPrinterSimulator.API.csproj", "{5A556621-30FD-4DE1-8CCC-3543FEA1F639}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3DPrinterSimulator.Application", "src\3DPrinterSimulator.Application\3DPrinterSimulator.Application.csproj", "{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3DPrinterSimulator.Data", "src\3DPrinterSimulator.Data\3DPrinterSimulator.Data.csproj", "{F315B486-B844-4103-8368-AE8301C8A64A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "3DPrinterSimulator.Infrastructure", "src\3DPrinterSimulator.Infrastructure\3DPrinterSimulator.Infrastructure.csproj", "{73A91668-9AAC-4A7D-B8B8-C2FEB9580990}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A556621-30FD-4DE1-8CCC-3543FEA1F639}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A556621-30FD-4DE1-8CCC-3543FEA1F639}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A556621-30FD-4DE1-8CCC-3543FEA1F639}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A556621-30FD-4DE1-8CCC-3543FEA1F639}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F315B486-B844-4103-8368-AE8301C8A64A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F315B486-B844-4103-8368-AE8301C8A64A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F315B486-B844-4103-8368-AE8301C8A64A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F315B486-B844-4103-8368-AE8301C8A64A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{73A91668-9AAC-4A7D-B8B8-C2FEB9580990}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{73A91668-9AAC-4A7D-B8B8-C2FEB9580990}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{73A91668-9AAC-4A7D-B8B8-C2FEB9580990}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{73A91668-9AAC-4A7D-B8B8-C2FEB9580990}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5A556621-30FD-4DE1-8CCC-3543FEA1F639} = {BDC2185B-D14F-4AB1-9060-68C55137994D}
+		{2B2C116B-03F8-445B-8A8E-EFB5FE533FC9} = {BDC2185B-D14F-4AB1-9060-68C55137994D}
+		{F315B486-B844-4103-8368-AE8301C8A64A} = {BDC2185B-D14F-4AB1-9060-68C55137994D}
+		{73A91668-9AAC-4A7D-B8B8-C2FEB9580990} = {BDC2185B-D14F-4AB1-9060-68C55137994D}
+	EndGlobalSection
+EndGlobal

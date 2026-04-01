@@ -1,0 +1,6 @@
+@_3DPrinterSimulator.API_HostAddress = http://localhost:5110
+
+GET {{_3DPrinterSimulator.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
