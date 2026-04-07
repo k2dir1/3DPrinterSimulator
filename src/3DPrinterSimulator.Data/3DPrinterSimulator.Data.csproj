@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="9.0.0" />
     <PackageReference Include="MongoDB.Bson" Version="3.6.0" />
+	  <PackageReference Include="Stateless" Version="5.16.0" />
   </ItemGroup>
 
 </Project>
