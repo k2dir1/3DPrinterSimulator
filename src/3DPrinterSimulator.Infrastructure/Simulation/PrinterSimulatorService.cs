@@ -38,10 +38,9 @@ public sealed class PrinterSimulatorService : BackgroundService
             await Task.Delay(_options.TickIntervalMs, stoppingToken);
 
             var printers = await _repo.GetAllAsync(stoppingToken);
-            foreach (var printer in printers)
-            {
-                await TickPrinterAsync(printer, stoppingToken);
-            }
+            await Task.WhenAll(
+                printers.Select(p => TickPrinterAsync(p, stoppingToken))
+            );
         }
     }
 
