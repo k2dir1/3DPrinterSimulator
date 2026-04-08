@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+
 namespace _3DPrinterSimulator.Infrastructure.Simulation;
 
 public sealed class PrinterSimulatorService : BackgroundService
@@ -13,16 +14,19 @@ public sealed class PrinterSimulatorService : BackgroundService
     private readonly IPrinterRepository _repo;
     private readonly ILogger<PrinterSimulatorService> _logger;
     private readonly SimulationOptions _options;
+    private readonly IPrinterBroadcaster _broadcaster;
     private readonly Random _rng = new();
 
     public PrinterSimulatorService(
         IPrinterRepository repo,
         ILogger<PrinterSimulatorService> logger,
-        IOptions<SimulationOptions> options)
+        IOptions<SimulationOptions> options,
+        IPrinterBroadcaster broadcaster)
     {
         _repo = repo;
         _logger = logger;
         _options = options.Value;
+        _broadcaster = broadcaster;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,6 +45,7 @@ public sealed class PrinterSimulatorService : BackgroundService
             await Task.WhenAll(
                 printers.Select(p => TickPrinterAsync(p, stoppingToken))
             );
+            await _broadcaster.BroadcastAllAsync(stoppingToken);
         }
     }
 

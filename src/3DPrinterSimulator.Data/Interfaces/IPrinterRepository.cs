@@ -1,5 +1,4 @@
 using _3DPrinterSimulator.Data.Entities;
-
 namespace _3DPrinterSimulator.Data.Interfaces;
 
 public interface IPrinterRepository
