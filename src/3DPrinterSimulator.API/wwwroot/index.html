@@ -1,0 +1,895 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Printer Farm — Live Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0c0e12;
+            --surface: #151820;
+            --surface-hover: #1c2030;
+            --border: #252a38;
+            --text: #e0e4ef;
+            --text-dim: #6b7394;
+            --accent: #3b82f6;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --orange: #f97316;
+            --red: #ef4444;
+            --cyan: #06b6d4;
+            --purple: #a855f7;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'IBM Plex Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ─────────────────────────────────────── */
+        .header {
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #12141a 0%, var(--bg) 100%);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 16px;
+            color: #fff;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+            .header h1 span {
+                color: var(--text-dim);
+                font-weight: 400;
+                margin-left: 8px;
+                font-size: 14px;
+            }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-dim);
+            padding: 6px 14px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            transition: background 0.3s;
+        }
+
+            .status-dot.connected {
+                background: var(--green);
+                box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+                animation: pulse-green 2s infinite;
+            }
+
+        @keyframes pulse-green {
+            0%, 100% {
+                box-shadow: 0 0 8px rgba(34, 197, 94, 0.3);
+            }
+
+            50% {
+                box-shadow: 0 0 14px rgba(34, 197, 94, 0.6);
+            }
+        }
+
+        /* ── Summary Bar ────────────────────────────────── */
+        .summary-bar {
+            display: flex;
+            gap: 1px;
+            padding: 16px 32px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+        }
+
+            .summary-item .count {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 28px;
+                font-weight: 700;
+            }
+
+            .summary-item .label {
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: var(--text-dim);
+                margin-top: 2px;
+            }
+
+        /* ── Grid ────────────────────────────────────────── */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
+            padding: 24px 32px;
+        }
+
+        /* ── Printer Card ────────────────────────────────── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: border-color 0.2s, transform 0.15s;
+        }
+
+            .card:hover {
+                border-color: #3b4560;
+                transform: translateY(-1px);
+            }
+
+        .card-header {
+            padding: 16px 18px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .card-name {
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .card-model {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+
+        .badge-offline {
+            background: #1e1e2a;
+            color: #6b7394;
+        }
+
+        .badge-idle {
+            background: #0f2a1a;
+            color: #22c55e;
+        }
+
+        .badge-heating {
+            background: #2a1f0a;
+            color: #eab308;
+        }
+
+        .badge-printing {
+            background: #0a1e2e;
+            color: #3b82f6;
+        }
+
+        .badge-cooling {
+            background: #0a2a2e;
+            color: #06b6d4;
+        }
+
+        .badge-paused {
+            background: #1e0a2e;
+            color: #a855f7;
+        }
+
+        .badge-error {
+            background: #2e0a0a;
+            color: #ef4444;
+        }
+
+        .card-body {
+            padding: 14px 18px;
+        }
+
+        /* ── Sensor Rows ─────────────────────────────────── */
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .sensor {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .sensor-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-dim);
+        }
+
+        .sensor-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .temp-hot {
+            color: var(--orange);
+        }
+
+        .temp-warm {
+            color: var(--yellow);
+        }
+
+        .temp-cool {
+            color: var(--cyan);
+        }
+
+        /* ── Progress Bar ────────────────────────────────── */
+        .progress-section {
+            margin-top: 12px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+            .progress-header .sensor-label {
+                margin: 0;
+            }
+
+        .progress-pct {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: #1c2030;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            background: var(--accent);
+            transition: width 0.6s ease;
+            position: relative;
+        }
+
+            .progress-fill.printing::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient( 90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100% );
+                animation: shimmer 1.5s infinite;
+            }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        /* ── Filament Bar ────────────────────────────────── */
+        .filament-section {
+            margin-top: 10px;
+        }
+
+        .filament-track {
+            width: 100%;
+            height: 4px;
+            background: #1c2030;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .filament-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--green);
+            transition: width 0.6s ease;
+        }
+
+            .filament-fill.warning {
+                background: var(--yellow);
+            }
+
+            .filament-fill.runout {
+                background: var(--red);
+            }
+
+        /* ── Job Info ─────────────────────────────────────── */
+        .job-info {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #111420;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+
+            .job-info .job-name {
+                color: var(--text);
+                font-weight: 600;
+            }
+
+        /* ── Error Message ───────────────────────────────── */
+        .error-msg {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #1e0a0a;
+            border: 1px solid #3e1a1a;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--red);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Actions ─────────────────────────────────────── */
+        .card-actions {
+            padding: 12px 18px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            background: var(--surface-hover);
+            color: var(--text);
+            transition: all 0.15s;
+        }
+
+            .btn:hover {
+                background: #262c40;
+                border-color: #4b5580;
+            }
+
+            .btn:disabled {
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
+
+        .btn-assign {
+            border-color: #1e3a5f;
+            color: var(--accent);
+        }
+
+            .btn-assign:hover:not(:disabled) {
+                background: #0f1e35;
+            }
+
+        .btn-resume {
+            border-color: #1e3a2e;
+            color: var(--green);
+        }
+
+            .btn-resume:hover:not(:disabled) {
+                background: #0f2a1a;
+            }
+
+        .btn-reset {
+            border-color: #3a1e1e;
+            color: var(--red);
+        }
+
+            .btn-reset:hover:not(:disabled) {
+                background: #2e0f0f;
+            }
+
+        /* ── Assign Job Modal ────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            place-items: center;
+        }
+
+            .modal-overlay.active {
+                display: grid;
+            }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            width: 400px;
+            max-width: 90vw;
+        }
+
+            .modal h2 {
+                font-size: 18px;
+                margin-bottom: 20px;
+            }
+
+            .modal label {
+                display: block;
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                color: var(--text-dim);
+                margin-bottom: 6px;
+                margin-top: 14px;
+            }
+
+                .modal label:first-of-type {
+                    margin-top: 0;
+                }
+
+            .modal input {
+                width: 100%;
+                padding: 10px 12px;
+                background: var(--bg);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                color: var(--text);
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 14px;
+                outline: none;
+            }
+
+                .modal input:focus {
+                    border-color: var(--accent);
+                }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+            justify-content: flex-end;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+            .btn-primary:hover {
+                background: #2563eb;
+            }
+
+        .btn-cancel {
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            padding: 8px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* ── Toast ────────────────────────────────────────── */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            animation: slide-in 0.3s ease;
+            max-width: 360px;
+        }
+
+            .toast.error {
+                border-color: #3e1a1a;
+                color: var(--red);
+            }
+
+            .toast.success {
+                border-color: #1e3a2e;
+                color: var(--green);
+            }
+
+        @keyframes slide-in {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* ── Responsive ──────────────────────────────────── */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+
+            .grid {
+                padding: 16px;
+                grid-template-columns: 1fr;
+            }
+
+            .summary-bar {
+                padding: 12px 16px;
+                flex-wrap: wrap;
+            }
+
+            .summary-item .count {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">3D</div>
+            <h1>Printer Farm <span>Live Dashboard</span></h1>
+        </div>
+        <div class="connection-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Disconnected</span>
+        </div>
+    </div>
+
+    <div class="summary-bar" id="summaryBar"></div>
+
+    <div class="grid" id="printerGrid"></div>
+
+    <!-- Assign Job Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Assign Print Job</h2>
+            <label>Job Name</label>
+            <input type="text" id="jobName" placeholder="e.g. Phone Case v2">
+            <label>Estimated Duration (hours)</label>
+            <input type="number" id="jobDuration" placeholder="2.5" step="0.1" min="0.1">
+            <label>Filament Required (grams)</label>
+            <input type="number" id="jobFilament" placeholder="45" step="1" min="1">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitJob()">Assign Job</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+  // ── Configuration ──────────────────────────────────
+  const API_BASE = 'https://localhost:7218/api/printers';
+  const HUB_URL = 'https://localhost:7218/hubs/printer';
+
+  let printers = [];
+  let assignTargetId = null;
+
+  // ── SignalR Connection ─────────────────────────────
+  const connection = new signalR.HubConnectionBuilder()
+    .withUrl(HUB_URL)
+    .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+    .configureLogging(signalR.LogLevel.Information)
+    .build();
+
+  connection.on('ReceivePrinterUpdates', (data) => {
+    printers = data;
+    render();
+  });
+
+  connection.onreconnecting(() => setConnectionStatus(false, 'Reconnecting...'));
+  connection.onreconnected(() => setConnectionStatus(true, 'Connected'));
+  connection.onclose(() => setConnectionStatus(false, 'Disconnected'));
+
+  async function startConnection() {
+    try {
+      await connection.start();
+      setConnectionStatus(true, 'Connected');
+    } catch (err) {
+      console.error('SignalR connection failed:', err);
+      setConnectionStatus(false, 'Failed — retrying...');
+      setTimeout(startConnection, 5000);
+    }
+  }
+
+  function setConnectionStatus(connected, text) {
+    document.getElementById('statusDot').className = 'status-dot' + (connected ? ' connected' : '');
+    document.getElementById('statusText').textContent = text;
+  }
+
+  // ── Initial Load via REST ──────────────────────────
+  async function loadInitial() {
+    try {
+      const res = await fetch(API_BASE);
+      printers = await res.json();
+      render();
+    } catch (e) {
+      console.error('Initial load failed:', e);
+    }
+  }
+
+  // ── Render ─────────────────────────────────────────
+  function render() {
+    renderSummary();
+    renderGrid();
+  }
+
+  function renderSummary() {
+    const counts = { Offline: 0, Idle: 0, Heating: 0, Printing: 0, Cooling: 0, Paused: 0, Error: 0 };
+    printers.forEach(p => { if (counts[p.status] !== undefined) counts[p.status]++; });
+
+    const colors = {
+      Offline: 'var(--text-dim)', Idle: 'var(--green)', Heating: 'var(--yellow)',
+      Printing: 'var(--accent)', Cooling: 'var(--cyan)', Paused: 'var(--purple)', Error: 'var(--red)'
+    };
+
+    document.getElementById('summaryBar').innerHTML = Object.entries(counts)
+      .map(([status, count]) => `
+        <div class="summary-item">
+          <div class="count" style="color:${colors[status]}">${count}</div>
+          <div class="label">${status}</div>
+        </div>
+      `).join('');
+  }
+
+  function renderGrid() {
+    document.getElementById('printerGrid').innerHTML = printers.map(p => {
+      const statusClass = p.status.toLowerCase();
+      const tempClass = t => t > 150 ? 'temp-hot' : t > 60 ? 'temp-warm' : 'temp-cool';
+      const filamentPct = p.filamentRemainingGrams / 2000 * 100;
+      const filamentClass = p.hasFilamentRunout ? 'runout' : p.hasFilamentWarning ? 'warning' : '';
+      const canAssign = p.permittedTriggers.includes('JobAssigned');
+      const canResume = p.permittedTriggers.includes('Resume');
+      const canReset = p.permittedTriggers.includes('Reset');
+      const hasActions = canAssign || canResume || canReset;
+
+      return `
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-name">${p.name}</div>
+              <div class="card-model">${p.brand} ${p.model} · ${p.printerType}</div>
+            </div>
+            <div class="badge badge-${statusClass}">${p.status}</div>
+          </div>
+          <div class="card-body">
+            <div class="sensor-grid">
+              <div class="sensor">
+                <div class="sensor-label">Nozzle</div>
+                <div class="sensor-value ${tempClass(p.nozzleTemp)}">${p.nozzleTemp.toFixed(1)}°C → ${p.targetNozzleTemp}°C</div>
+              </div>
+              <div class="sensor">
+                <div class="sensor-label">Bed</div>
+                <div class="sensor-value ${tempClass(p.bedTemp)}">${p.bedTemp.toFixed(1)}°C → ${p.targetBedTemp}°C</div>
+              </div>
+              <div class="sensor">
+                <div class="sensor-label">Feed Rate</div>
+                <div class="sensor-value">${p.feedRate.toFixed(2)}x</div>
+              </div>
+              <div class="sensor">
+                <div class="sensor-label">Filament</div>
+                <div class="sensor-value ${filamentClass ? 'temp-hot' : ''}">${p.filamentRemainingGrams.toFixed(0)}g</div>
+              </div>
+            </div>
+
+            <div class="progress-section">
+              <div class="progress-header">
+                <div class="sensor-label">Progress</div>
+                <div class="progress-pct">${p.progress}%</div>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill ${statusClass === 'printing' ? 'printing' : ''}" style="width:${p.progress}%"></div>
+              </div>
+            </div>
+
+            <div class="filament-section">
+              <div class="progress-header">
+                <div class="sensor-label">Filament Level</div>
+              </div>
+              <div class="filament-track">
+                <div class="filament-fill ${filamentClass}" style="width:${Math.min(100, filamentPct)}%"></div>
+              </div>
+            </div>
+
+            ${p.currentJobName ? `
+              <div class="job-info">
+                <span class="job-name">${p.currentJobName}</span>
+                ${p.estimatedRemainingHours != null
+                  ? `<span>${p.estimatedRemainingHours.toFixed(1)}h left</span>`
+                  : ''}
+              </div>
+            ` : ''}
+
+            ${p.errorMessage ? `<div class="error-msg">${p.errorMessage}</div>` : ''}
+          </div>
+
+          ${hasActions ? `
+            <div class="card-actions">
+              ${canAssign ? `<button class="btn btn-assign" onclick="openModal('${p.id}')">Assign Job</button>` : ''}
+              ${canResume ? `<button class="btn btn-resume" onclick="sendCommand('${p.id}', 'resume')">Resume</button>` : ''}
+              ${canReset ? `<button class="btn btn-reset" onclick="sendCommand('${p.id}', 'reset')">Reset</button>` : ''}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Commands ───────────────────────────────────────
+  async function sendCommand(id, action) {
+    try {
+      const res = await fetch(`${API_BASE}/${id}/${action}`, { method: 'POST' });
+      if (!res.ok) {
+        const text = await res.text();
+        toast(text || `${action} failed`, 'error');
+        return;
+      }
+      toast(`${action} sent successfully`, 'success');
+    } catch (e) {
+      toast(`Network error: ${e.message}`, 'error');
+    }
+  }
+
+  function openModal(printerId) {
+    assignTargetId = printerId;
+    document.getElementById('jobName').value = '';
+    document.getElementById('jobDuration').value = '';
+    document.getElementById('jobFilament').value = '';
+    document.getElementById('modalOverlay').classList.add('active');
+    document.getElementById('jobName').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('active');
+    assignTargetId = null;
+  }
+
+  async function submitJob() {
+    const name = document.getElementById('jobName').value.trim();
+    const duration = parseFloat(document.getElementById('jobDuration').value);
+    const filament = parseFloat(document.getElementById('jobFilament').value);
+
+    if (!name || !duration || !filament) {
+      toast('Please fill in all fields', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/${assignTargetId}/assign-job`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name,
+          estimatedDurationHours: duration,
+          filamentRequiredGrams: filament
+        })
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        toast(text || 'Assign job failed', 'error');
+        return;
+      }
+
+      toast(`Job "${name}" assigned`, 'success');
+      closeModal();
+    } catch (e) {
+      toast(`Network error: ${e.message}`, 'error');
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // Close modal on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // ── Toast Notifications ────────────────────────────
+  function toast(message, type = '') {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    container.appendChild(el);
+    setTimeout(() => { el.remove(); }, 4000);
+  }
+
+  // ── Init ───────────────────────────────────────────
+  loadInitial();
+  startConnection();
+    </script>
+</body>
+</html>
