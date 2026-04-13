@@ -7,6 +7,18 @@ using _3DPrinterSimulator.Infrastructure.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// --- 1. CORS POLÝTÝKASI EKLE (Yeni eklendi) ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173") // Vite/React adresi
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // SignalR için zorunludur
+    });
+});
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -20,7 +32,6 @@ builder.Services.AddSingleton<IPrinterBroadcaster, SignalRPrinterBroadcaster>();
 
 var app = builder.Build();
 
-// Seed printers
 using (var scope = app.Services.CreateScope())
 {
     var repo = scope.ServiceProvider.GetRequiredService<IPrinterRepository>();
@@ -28,14 +39,20 @@ using (var scope = app.Services.CreateScope())
     app.Logger.LogInformation("10 yazýcý baþarýyla oluþturuldu.");
 }
 
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseRouting();
+
+app.UseCors("ReactPolicy");
+
+//app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.MapControllers();
 app.MapHub<PrinterHub>("/hubs/printer");
 

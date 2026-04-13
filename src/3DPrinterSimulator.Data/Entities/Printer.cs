@@ -88,6 +88,14 @@ public class Printer
         _domainEvents.Add(new JobAssignedEvent(Id, job.Id, DateTime.UtcNow));
     }
 
+    // Filament makara değişimi simüle eder: kapasiteye doldurur, runout/warning bayraklarını temizler.
+    public void RefillFilament()
+    {
+        FilamentRemainingGrams = HardwareProfile.FilamentCapacityGrams;
+        HasFilamentRunout = false;
+        HasFilamentWarning = false;
+    }
+
     //İş tamamlandığında çağrılır; domain event ekler.
     public void CompleteJob()
     {
