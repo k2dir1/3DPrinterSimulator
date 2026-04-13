@@ -3,6 +3,10 @@ using _3DPrinterSimulator.Infrastructure.Repositories;
 using _3DPrinterSimulator.Infrastructure.Simulation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using System.Security.Authentication;
 
@@ -14,6 +18,13 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // MongoDB global Guid ayarý — en baþta yapýlmalý
+        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
+        // private set olan property'leri MongoDB okuyabilsin
+        ConventionRegistry.Register("IgnoreExtraElements",
+            new ConventionPack { new IgnoreExtraElementsConvention(true) }, _ => true);
+
         services.Configure<SimulationOptions>(
             configuration.GetSection(SimulationOptions.SectionName));
 
