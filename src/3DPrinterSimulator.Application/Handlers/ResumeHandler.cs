@@ -1,9 +1,9 @@
-﻿using AutoMapper;
-using MediatR;
-using _3DPrinterSimulator.Application.Commands;
+﻿using _3DPrinterSimulator.Application.Commands;
 using _3DPrinterSimulator.Application.DTOs;
 using _3DPrinterSimulator.Data.Interfaces;
 using _3DPrinterSimulator.Data.StateMachine;
+using AutoMapper;
+using MediatR;
 
 namespace _3DPrinterSimulator.Application.Handlers;
 
@@ -29,6 +29,7 @@ public class ResumeHandler : IRequestHandler<ResumeCommand, PrinterDto>
             throw new InvalidOperationException(
                 $"Printer is {printer.Status}, cannot resume. Permitted: {string.Join(", ", sm.PermittedTriggers)}");
 
+        printer.RefillFilament();
         sm.Fire(PrinterStateMachine.Triggers.Resume);
         await _repo.UpdateAsync(printer, ct);
         return _mapper.Map<PrinterDto>(printer);

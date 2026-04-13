@@ -140,7 +140,10 @@ public sealed class PrinterSimulatorService : BackgroundService
         var newBed = printer.BedTemp + (_rng.NextDouble() - 0.5) * 2;
 
         printer.UpdateSensorData(newNozzle, newBed, newProgress, feedRate);
-        printer.ConsumeFilament(_rng.NextDouble() * 2 + 0.3);
+
+        // İlerleme artışı kadar filament harca (işin toplam filamentine orantılı)
+        double filamentPerPercent = (printer.CurrentJob?.FilamentRequiredGrams ?? 50.0) / 100.0;
+        printer.ConsumeFilament(progressInc * filamentPerPercent);
 
         // Filament bitti mi?
         if (printer.HasFilamentRunout && sm.CanFire(PrinterStateMachine.Triggers.FilamentRunout))
