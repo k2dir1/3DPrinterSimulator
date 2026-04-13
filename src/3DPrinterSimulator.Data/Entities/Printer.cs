@@ -1,11 +1,15 @@
 using _3DPrinterSimulator.Data.Enums;
 using _3DPrinterSimulator.Data.Events;
 using _3DPrinterSimulator.Data.ValueObjects;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace _3DPrinterSimulator.Data.Entities;
 
 public class Printer
 {
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
     public Guid Id { get; private set; } = Guid.NewGuid();
 
     public string Name { get; private set; }

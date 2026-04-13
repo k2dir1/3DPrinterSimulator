@@ -5,7 +5,12 @@ using _3DPrinterSimulator.Infrastructure.Messaging;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
+using System.Security.Authentication;
 
 namespace _3DPrinterSimulator.Infrastructure;
 
@@ -15,10 +20,33 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // MongoDB global Guid ayarý — en baþta yapýlmalý
+        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
+        // private set olan property'leri MongoDB okuyabilsin
+        ConventionRegistry.Register("IgnoreExtraElements",
+            new ConventionPack { new IgnoreExtraElementsConvention(true) }, _ => true);
+
         services.Configure<SimulationOptions>(
             configuration.GetSection(SimulationOptions.SectionName));
 
-        services.AddSingleton<IPrinterRepository, InMemoryPrinterRepository>();
+        var mongoSettings = new MongoDbSettings
+        {
+            ConnectionString = configuration["MONGODB_CONNECTION_STRING"]
+                ?? configuration["MongoDB:ConnectionString"]
+                ?? "mongodb://localhost:27017",
+            DatabaseName = configuration["MongoDB:DatabaseName"] ?? "3dprinter"
+        };
+
+        var mongoClientSettings = MongoClientSettings.FromConnectionString(mongoSettings.ConnectionString);
+        mongoClientSettings.SslSettings = new SslSettings
+        {
+            EnabledSslProtocols = SslProtocols.Tls12
+        };
+
+        services.AddSingleton<IMongoClient>(new MongoClient(mongoClientSettings));
+        services.AddSingleton(mongoSettings);
+        services.AddSingleton<IPrinterRepository, MongoDbPrinterRepository>();
 
         services.AddHostedService<PrinterSimulatorService>();
 
