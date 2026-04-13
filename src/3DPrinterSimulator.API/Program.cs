@@ -12,8 +12,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactPolicy", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://3d-printer-client-4wfdofrnu-dilarasenturkks-projects.vercel.app") // Vite/React adresi
-              .AllowAnyHeader()
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "https://3d-printer-client.vercel.app",
+            "https://3d-printer-client-4wfdofrnu-dilarasenturkks-projects.vercel.app"
+        )
+                      .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials(); // SignalR için zorunludur
     });
