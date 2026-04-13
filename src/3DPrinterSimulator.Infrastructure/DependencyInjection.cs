@@ -4,6 +4,7 @@ using _3DPrinterSimulator.Infrastructure.Simulation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
+using System.Security.Authentication;
 
 namespace _3DPrinterSimulator.Infrastructure;
 
@@ -24,8 +25,13 @@ public static class DependencyInjection
             DatabaseName = configuration["MongoDB:DatabaseName"] ?? "3dprinter"
         };
 
-        services.AddSingleton<IMongoClient>(
-            new MongoClient(mongoSettings.ConnectionString));
+        var mongoClientSettings = MongoClientSettings.FromConnectionString(mongoSettings.ConnectionString);
+        mongoClientSettings.SslSettings = new SslSettings
+        {
+            EnabledSslProtocols = SslProtocols.Tls12
+        };
+
+        services.AddSingleton<IMongoClient>(new MongoClient(mongoClientSettings));
         services.AddSingleton(mongoSettings);
         services.AddSingleton<IPrinterRepository, MongoDbPrinterRepository>();
 
