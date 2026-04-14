@@ -1,48 +1,46 @@
 ﻿using MediatR;
-using MassTransit;
 using Microsoft.Extensions.Logging;
 using _3DPrinterSimulator.Application.Commands;
 using _3DPrinterSimulator.Application.Contracts;
+using _3DPrinterSimulator.Data.Interfaces;
 
 namespace _3DPrinterSimulator.Application.Handlers;
 
 public class GenerateBulkJobsHandler : IRequestHandler<GenerateBulkJobsCommand, string>
 {
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IRabbitMqProducer _producer;
     private readonly ILogger<GenerateBulkJobsHandler> _logger;
 
-    public GenerateBulkJobsHandler(IPublishEndpoint publishEndpoint, ILogger<GenerateBulkJobsHandler> logger)
+    public GenerateBulkJobsHandler(IRabbitMqProducer producer, ILogger<GenerateBulkJobsHandler> logger)
     {
-        _publishEndpoint = publishEndpoint;
+        _producer = producer;
         _logger = logger;
     }
 
     public async Task<string> Handle(GenerateBulkJobsCommand request, CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Preparing to send {Count} jobs to RabbitMQ...", request.Count);
+        _logger.LogInformation("Generating {Count} jobs for RabbitMQ...", request.Count);
 
-        var tasks = new List<Task>();
         var random = new Random();
+        var types = new[] { "singlecolor", "multicolor", "any" };
+        var messages = new List<PrintJobMessage>();
 
         for (int i = 0; i < request.Count; i++)
         {
-            var job = new PrintJobRequest
+            messages.Add(new PrintJobMessage
             {
                 JobId = Guid.NewGuid(),
-                Name = $"Bulk-Job-{i + 1}",
+                Name = $"Job-{i + 1}",
                 Duration = Math.Round(random.NextDouble() * 9 + 1, 1),
-                FilamentGrams = random.Next(50, 300)
-            };
-
-
-            tasks.Add(_publishEndpoint.Publish(job, cancellationToken));
+                FilamentGrams = random.Next(50, 300),
+                TargetPrinterType = types[random.Next(types.Length)],
+                Priority = (byte)random.Next(0, 10)
+            });
         }
 
+        await _producer.PublishBatchAsync(messages);
 
-        await Task.WhenAll(tasks);
-
-        _logger.LogInformation("Successfully dispatched {Count} jobs to the queue.", request.Count);
-
-        return $"Successfully blasted {request.Count} jobs into the RabbitMQ exchange!";
+        _logger.LogInformation("Dispatched {Count} jobs to RabbitMQ", request.Count);
+        return $"Blasted {request.Count} jobs into RabbitMQ with random priorities and printer types!";
     }
 }

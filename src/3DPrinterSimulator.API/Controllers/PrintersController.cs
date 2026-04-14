@@ -1,4 +1,5 @@
 ﻿using _3DPrinterSimulator.Application.Commands;
+using _3DPrinterSimulator.Application.Contracts;
 using _3DPrinterSimulator.Application.DTOs;
 using _3DPrinterSimulator.Data.Interfaces;
 using AutoMapper;
@@ -14,12 +15,14 @@ public class PrintersController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IPrinterRepository _repo;
     private readonly IMapper _mapper;
+    private readonly IRabbitMqProducer _producer;
 
-    public PrintersController(IMediator mediator, IPrinterRepository repo, IMapper mapper)
+    public PrintersController(IMediator mediator, IPrinterRepository repo, IMapper mapper, IRabbitMqProducer producer)
     {
         _mediator = mediator;
         _repo = repo;
         _mapper = mapper;
+        _producer = producer;
     }
 
     [HttpGet]
@@ -104,5 +107,20 @@ public class PrintersController : ControllerBase
             Message = resultMessage,
             Timestamp = DateTime.UtcNow
         });
+    }
+    [HttpPost("urgent-job")]
+    public async Task<IActionResult> UrgentJob([FromBody] AssignJobDto dto)
+    {
+        var message = new PrintJobMessage
+        {
+            Name = dto.Name,
+            Duration = dto.EstimatedDurationHours,
+            FilamentGrams = dto.FilamentRequiredGrams,
+            Priority = 9,
+            TargetPrinterType = "any"
+        };
+
+        await _producer.PublishJobAsync(message);
+        return Ok($"Urgent job '{dto.Name}' published with priority 9");
     }
 }
