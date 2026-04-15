@@ -1,11 +1,15 @@
 using _3DPrinterSimulator.Data.Enums;
 using _3DPrinterSimulator.Data.Events;
 using _3DPrinterSimulator.Data.ValueObjects;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace _3DPrinterSimulator.Data.Entities;
 
 public class Printer
 {
+    [BsonId]
+    [BsonRepresentation(BsonType.String)]
     public Guid Id { get; private set; } = Guid.NewGuid();
 
     public string Name { get; private set; }
@@ -86,6 +90,14 @@ public class Printer
         TargetBedTemp = 60;
         Progress = 0;
         _domainEvents.Add(new JobAssignedEvent(Id, job.Id, DateTime.UtcNow));
+    }
+
+    // Filament makara değişimi simüle eder: kapasiteye doldurur, runout/warning bayraklarını temizler.
+    public void RefillFilament()
+    {
+        FilamentRemainingGrams = HardwareProfile.FilamentCapacityGrams;
+        HasFilamentRunout = false;
+        HasFilamentWarning = false;
     }
 
     //İş tamamlandığında çağrılır; domain event ekler.

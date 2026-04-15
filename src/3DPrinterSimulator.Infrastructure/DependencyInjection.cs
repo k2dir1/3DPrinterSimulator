@@ -1,25 +1,58 @@
 using _3DPrinterSimulator.Data.Interfaces;
 using _3DPrinterSimulator.Infrastructure.Repositories;
 using _3DPrinterSimulator.Infrastructure.Simulation;
+using _3DPrinterSimulator.Infrastructure.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
+using System.Security.Authentication;
 
 namespace _3DPrinterSimulator.Infrastructure;
 
-
 public static class DependencyInjection
 {
-
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        // MongoDB
+        BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+        ConventionRegistry.Register("IgnoreExtraElements",
+            new ConventionPack { new IgnoreExtraElementsConvention(true) }, _ => true);
+
         services.Configure<SimulationOptions>(
             configuration.GetSection(SimulationOptions.SectionName));
 
-        services.AddSingleton<IPrinterRepository, InMemoryPrinterRepository>();
+        var mongoSettings = new MongoDbSettings
+        {
+            ConnectionString = configuration["MONGODB_CONNECTION_STRING"]
+                ?? configuration["MongoDB:ConnectionString"]
+                ?? "mongodb://localhost:27017",
+            DatabaseName = configuration["MongoDB:DatabaseName"] ?? "3dprinter"
+        };
+
+        var mongoClientSettings = MongoClientSettings.FromConnectionString(mongoSettings.ConnectionString);
+        mongoClientSettings.SslSettings = new SslSettings
+        {
+            EnabledSslProtocols = SslProtocols.Tls12
+        };
+
+        services.AddSingleton<IMongoClient>(new MongoClient(mongoClientSettings));
+        services.AddSingleton(mongoSettings);
+        services.AddSingleton<IPrinterRepository, MongoDbPrinterRepository>();
 
         services.AddHostedService<PrinterSimulatorService>();
+
+
+        services.Configure<RabbitMqOptions>(
+            configuration.GetSection(RabbitMqOptions.SectionName));
+        services.AddSingleton<RabbitMqConnection>();
+        services.AddSingleton<IRabbitMqProducer, RabbitMqProducer>();
+        services.AddHostedService<RabbitMqConsumer>();
 
         return services;
     }

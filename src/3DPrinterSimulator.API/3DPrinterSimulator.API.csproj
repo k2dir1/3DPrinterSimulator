@@ -2,6 +2,8 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\3DPrinterSimulator.Application\3DPrinterSimulator.Application.csproj" />
+		<ProjectReference Include="..\3DPrinterSimulator.Data\3DPrinterSimulator.Data.csproj" />
+		<ProjectReference Include="..\3DPrinterSimulator.Infrastructure\3DPrinterSimulator.Infrastructure.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

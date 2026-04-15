@@ -1,9 +1,10 @@
-﻿using AutoMapper;
-using MediatR;
-using Microsoft.AspNetCore.Mvc;
-using _3DPrinterSimulator.Application.Commands;
+﻿using _3DPrinterSimulator.Application.Commands;
+using _3DPrinterSimulator.Application.Contracts;
 using _3DPrinterSimulator.Application.DTOs;
 using _3DPrinterSimulator.Data.Interfaces;
+using AutoMapper;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace _3DPrinterSimulator.API.Controllers;
 
@@ -14,12 +15,14 @@ public class PrintersController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IPrinterRepository _repo;
     private readonly IMapper _mapper;
+    private readonly IRabbitMqProducer _producer;
 
-    public PrintersController(IMediator mediator, IPrinterRepository repo, IMapper mapper)
+    public PrintersController(IMediator mediator, IPrinterRepository repo, IMapper mapper, IRabbitMqProducer producer)
     {
         _mediator = mediator;
         _repo = repo;
         _mapper = mapper;
+        _producer = producer;
     }
 
     [HttpGet]
@@ -72,5 +75,52 @@ public class PrintersController : ControllerBase
         }
         catch (KeyNotFoundException ex) { return NotFound(ex.Message); }
         catch (InvalidOperationException ex) { return Conflict(ex.Message); }
+    }
+
+    [HttpPost("{id:guid}/trigger")]
+    public async Task<IActionResult> Trigger(Guid id, [FromBody] TriggerDto dto)
+    {
+        if (dto.Trigger == "JobAssigned")
+        {
+            var result = await _mediator.Send(
+                new AssignJobCommand(id, dto.Name ?? "ManualJob",
+                    dto.EstimatedDurationHours ?? 2.0,
+                    dto.FilamentRequiredGrams ?? 50.0));
+            return Ok(result);
+        }
+        if (dto.Trigger == "Resume")
+            return Ok(await _mediator.Send(new ResumeCommand(id)));
+        if (dto.Trigger == "Reset")
+            return Ok(await _mediator.Send(new ResetCommand(id)));
+        return BadRequest("Unknown trigger");
+    }
+
+
+    [HttpPost("blast")]
+    public async Task<IActionResult> BlastJobs([FromQuery] int count = 100)
+    {
+
+        var resultMessage = await _mediator.Send(new GenerateBulkJobsCommand(count));
+
+        return Ok(new
+        {
+            Message = resultMessage,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+    [HttpPost("urgent-job")]
+    public async Task<IActionResult> UrgentJob([FromBody] AssignJobDto dto)
+    {
+        var message = new PrintJobMessage
+        {
+            Name = dto.Name,
+            Duration = dto.EstimatedDurationHours,
+            FilamentGrams = dto.FilamentRequiredGrams,
+            Priority = 9,
+            TargetPrinterType = "any"
+        };
+
+        await _producer.PublishJobAsync(message);
+        return Ok($"Urgent job '{dto.Name}' published with priority 9");
     }
 }
